@@ -1,0 +1,62 @@
+name: Publish openapi-python
+
+on:
+  push:
+    branches:
+      - arena
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Build and release tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: '0'
+
+      - name: Build @hey-api/openapi-python
+        run: pnpm --filter @hey-api/openapi-python... build
+
+      - name: Pack tarball
+        working-directory: packages/openapi-python
+        run: pnpm pack
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA::7}"
+          tag="arena-${short_sha}"
+          tarball="$(ls packages/openapi-python/hey-api-openapi-python-*.tgz)"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists"
+            exit 0
+          fi
+          gh release create "$tag" "$tarball" \
+            --title "@hey-api/openapi-python ${tag}" \
+            --notes "Built from \`${GITHUB_SHA}\` on \`arena\`.
+
+          Install:
+
+          \`\`\`
+          npm i https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/$(basename "$tarball")
+          \`\`\`"
