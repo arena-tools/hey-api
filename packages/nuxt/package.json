@@ -61,7 +61,7 @@
   "devDependencies": {
     "@hey-api/openapi-ts": "workspace:*",
     "@nuxt/module-builder": "0.8.4",
-    "@nuxt/schema": "3.16.2",
+    "@nuxt/schema": "4.6.4",
     "@nuxt/test-utils": "4.0.3"
   },
   "peerDependencies": {
